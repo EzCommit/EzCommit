@@ -142,7 +142,7 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
 
 class GitModel:
     def __init__(self):
-        self.repository = Repository('D:\COLLEGE\YEAR3\SEM2\CNPM\TEST')
+        self.repository = Repository('D:\COLLEGE\YEAR3\SEM2\CNPM\EZCOMMIT\EzCommit')
         self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
 
     def get_changes(self):
@@ -186,16 +186,17 @@ class GitModel:
 
         prompt = ""
         for file, content in files_content:
-            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n"""
+            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
             prompt += content + "\n"
             prompt += "CODE END HERE!!!\n\n"
 
-        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n"""
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
         prompt += all_changes + "\n"
         prompt += "GIT DIFF END HERE!!!\n\n"
 
-        prompt += "Write a commit message for the changes. Follow conventional commit rules. Don't need to explain. Read the code carefully, don't miss any changes."
+        prompt += "Without explaining, I want you to generate a commit message for the changes above. You must answer the message only."
 
+        print(prompt)
         response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
         return response
 
