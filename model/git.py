@@ -194,7 +194,7 @@ class GitModel:
         prompt += all_changes + "\n"
         prompt += "GIT DIFF END HERE!!!\n\n"
 
-        prompt += "Write a commit message for the changes. Follow conventional commit rules. Don't need to explain. Read the code carefully, don't miss any changes."
+        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
 
 
         response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
