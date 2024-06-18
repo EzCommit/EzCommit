@@ -2,9 +2,9 @@ from view.view import View
 from model.git import GitModel
 
 class Controller:
-    def __init__(self, ):
+    def __init__(self, model_configs: dict):
         self.view = View()
-        self.model = GitModel()
+        self.model = GitModel(**model_configs)
 
     def display_diff(self):
         diffs = self.model.get_changes()

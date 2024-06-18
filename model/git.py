@@ -3,6 +3,7 @@ import subprocess
 import asyncio
 from typing import List
 from enum import Enum
+from pathlib import Path
 from openai import AsyncOpenAI
 
 class Key(Enum):
@@ -141,9 +142,23 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
     return response.choices[0].message.content
 
 class GitModel:
-    def __init__(self):
-        self.repository = Repository('D:\COLLEGE\YEAR3\SEM2\CNPM\EZCOMMIT\EzCommit')
+    def __init__(self, context_path, convention_path):
+        self.repository = Repository('.')
         self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
+
+        self.context_path = Path(context_path) if context_path else None
+        self.convention_path = Path(convention_path) if convention_path else None
+        self.context = ""
+        self.convention = ""
+
+        if self.context_path:
+            assert self.context_path.exists(), "Context file does not exist"
+            self.context = "Given this is the context of the commit message: \n"
+            self.context += self.context_path.read_text() + "\n"
+        if self.convention_path:
+            assert self.convention_path.exists(), "Convention file does not exist"
+            self.convention = "Given this is the convention of the commit message: \n"
+            self.convention += self.convention_path.read_text() + "\n"
 
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))
@@ -184,7 +199,7 @@ class GitModel:
         if len(files_content) == 0:
             return "No changes found"
 
-        prompt = ""
+        prompt = self.context + self.convention
         for file, content in files_content:
             prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
             prompt += content + "\n"
