@@ -1,8 +1,11 @@
-from git import Repo, GitCommandError
+from rag.rag import RAG
 import subprocess
 import asyncio
 from typing import List
 from enum import Enum
+from git import Repo
+
+from constants import REPO_PATH
 
 class Key(Enum):
     USER_EMAIL = 'user.email'
@@ -85,9 +88,13 @@ async def _diff_index(repository: Repository, options: list = []) -> list:
 
 
 
-class GitModel:
+class Model:
     def __init__(self):
-        self.repository = Repository('/Users/minhvu/Documents/cnpmai/CLItest/csv-diff')
+        self.repository = Repository(REPO_PATH)
+        self.rag = RAG()
+
+    def create_commit(self):
+        self.rag.generate_commit_message()
 
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))

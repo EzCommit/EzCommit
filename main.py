@@ -3,12 +3,15 @@ import click
 
 @click.command()
 @click.option('--diff', is_flag=True, help='Display git differences.')
-# @click.option('--create-commit', is_flag=True, help='Display git differences.')
-def main(diff):
+@click.option('--create-commit', is_flag=True, help='Display git differences.')
+def main(**kwargs):
     controller = Controller()
-    controller.display_welcome_message()
-    if diff:
+    if kwargs.get('diff'):
         controller.display_diff()
+    elif kwargs.get('create_commit'):
+        controller.create_commit()
+    elif not any(kwargs.values()):
+        controller.display_welcome_message()
     else:
         click.echo("Use --help for command options.")
 
