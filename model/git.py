@@ -142,9 +142,9 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
     return response.choices[0].message.content
 
 class GitModel:
-    def __init__(self):
-        self.repository = Repository('C:\Chien SE\EzCommit')
-        self.api_key = "sk-proj-kAu2Hk7M8yL0xUy8rPjPT3BlbkFJwNrJZ0PorIbKJLN9vvq4"
+    def __init__(self, context_path, convention_path):
+        self.repository = Repository('.')
+        self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
 
         self.context_path = Path(context_path) if context_path else None
         self.convention_path = Path(convention_path) if convention_path else None
@@ -159,6 +159,7 @@ class GitModel:
             assert self.convention_path.exists(), "Convention file does not exist"
             self.convention = "Given this is the convention of the commit message: \n"
             self.convention += self.convention_path.read_text() + "\n"
+            print("Path:", self.convention_path)
 
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))
@@ -211,8 +212,9 @@ class GitModel:
 
         prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
 
-
+        print(prompt)
         response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
+        #response = "yes"
         return response
 
     def commit(self, msg: str):
