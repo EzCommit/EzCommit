@@ -149,7 +149,7 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
 
 class Model:
     def __init__(self, context_path: str = None, convention_path: str = None):
-        self.repository = Repository(REPO_PATH)
+        self.repository = Repository()
         self.rag = RAG()
         self.context_path = Path(context_path) if context_path else None
         self.convention_path = Path(convention_path) if convention_path else None
@@ -219,7 +219,6 @@ class Model:
         prompt += "GIT DIFF END HERE!!!\n\n"
 
         prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
-
 
         response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
         return response
