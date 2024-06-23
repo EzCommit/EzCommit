@@ -54,9 +54,13 @@ class View:
         
         click.echo(top_bottom_border)    
 
-    def display_generated_commit(self, commit):
+    def display_generated_commit(self, msg):
+        if (msg == "No changes found"):
+            click.echo(msg)
+            return "a"
+        
         click.echo("Generated commit: ")
-        click.echo(commit)
+        click.echo(msg)
         click.echo("")
         user_input = click.prompt("""Type c to commit, r to regenerate, a to abort""")
         return user_input

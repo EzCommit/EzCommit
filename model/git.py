@@ -3,6 +3,7 @@ import subprocess
 import asyncio
 from typing import List
 from enum import Enum
+from pathlib import Path
 from openai import AsyncOpenAI
 
 class Key(Enum):
@@ -145,6 +146,20 @@ class GitModel:
         self.repository = Repository('C:\Chien SE\EzCommit')
         self.api_key = "sk-proj-kAu2Hk7M8yL0xUy8rPjPT3BlbkFJwNrJZ0PorIbKJLN9vvq4"
 
+        self.context_path = Path(context_path) if context_path else None
+        self.convention_path = Path(convention_path) if convention_path else None
+        self.context = ""
+        self.convention = ""
+
+        if self.context_path:
+            assert self.context_path.exists(), "Context file does not exist"
+            self.context = "Given this is the context of the commit message: \n"
+            self.context += self.context_path.read_text() + "\n"
+        if self.convention_path:
+            assert self.convention_path.exists(), "Convention file does not exist"
+            self.convention = "Given this is the convention of the commit message: \n"
+            self.convention += self.convention_path.read_text() + "\n"
+
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))
         if staged_changes:
@@ -184,17 +199,18 @@ class GitModel:
         if len(files_content) == 0:
             return "No changes found"
 
-        prompt = ""
+        prompt = self.context + self.convention
         for file, content in files_content:
-            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n"""
+            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
             prompt += content + "\n"
             prompt += "CODE END HERE!!!\n\n"
 
-        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n"""
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
         prompt += all_changes + "\n"
         prompt += "GIT DIFF END HERE!!!\n\n"
 
-        prompt += "Write a commit message for the changes. Follow conventional commit rules. Don't need to explain. Read the code carefully, don't miss any changes."
+        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
+
 
         response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
         return response
