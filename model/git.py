@@ -3,6 +3,8 @@ import subprocess
 import asyncio
 from typing import List
 from enum import Enum
+from pathlib import Path
+from openai import AsyncOpenAI
 
 class Key(Enum):
     USER_EMAIL = 'user.email'
@@ -83,11 +85,80 @@ async def _diff_index(repository: Repository, options: list = []) -> list:
     lines = stdout.split("\n")
     return [line for line in lines if line]
 
+async def _diff_files(repository: Repository, options: list = []) -> list:
+    cwd = repository.repo_path
+    cmd = "diff"
+    full_options = [
+        "--name-only",
+        *options,
+        "HEAD",
+    ]
 
+    stdout, stderr = await _execute(cwd, cmd, full_options)
+
+    if stderr:
+        print(f"stderr for 'git {cmd}' command:", stderr)
+
+    lines = stdout.split("\n")
+    return [line for line in lines if line]
+
+async def _diff_detail_no_split(repository: Repository, options: list = []) -> list:
+    cwd = repository.repo_path
+    cmd = "diff"
+    full_options = []
+
+    stdout, stderr = await _execute(cwd, cmd, full_options)
+
+    if stderr:
+        print(f"stderr for 'git {cmd}' command:", stderr)
+    
+    return stdout
+
+async def _get_file_content(repository: Repository, file_path: str) -> str:
+    try:
+        with open(f"{repository.repo_path}/{file_path}", 'r') as file:
+            return file.read()
+    except Exception as e:
+        return f"Error: {e}"
+    
+async def _commit(repository: Repository, msg: str) -> list:
+    cwd = repository.repo_path
+    cmd = "commit"
+    full_options = ['-a', '-m', msg]
+    stdout, stderr = await _execute(cwd, cmd, full_options)
+    
+async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> str:
+    client = AsyncOpenAI(api_key=api_key)
+    response = await client.chat.completions.create(
+        messages=[{
+            "role": "user",
+            "content": prompt,
+        }],
+        model="gpt-3.5-turbo-0125",
+        temperature=temperature,
+        top_p=1,
+        max_tokens=100,
+    )
+    return response.choices[0].message.content
 
 class GitModel:
-    def __init__(self):
-        self.repository = Repository('/Users/minhvu/Documents/cnpmai/CLItest/csv-diff')
+    def __init__(self, context_path, convention_path):
+        self.repository = Repository('.')
+        self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
+
+        self.context_path = Path(context_path) if context_path else None
+        self.convention_path = Path(convention_path) if convention_path else None
+        self.context = ""
+        self.convention = ""
+
+        if self.context_path:
+            assert self.context_path.exists(), "Context file does not exist"
+            self.context = "Given this is the context of the commit message: \n"
+            self.context += self.context_path.read_text() + "\n"
+        if self.convention_path:
+            assert self.convention_path.exists(), "Convention file does not exist"
+            self.convention = "Given this is the convention of the commit message: \n"
+            self.convention += self.convention_path.read_text() + "\n"
 
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))
@@ -99,4 +170,52 @@ class GitModel:
         if not all_changes:
             print("No changes found")
         return all_changes
+
+    def get_changes_no_split(self):
+        staged_changes = asyncio.run(_diff_detail_no_split(self.repository))
+        return staged_changes
+
+    def get_modified_files(self):
+        modified_files = asyncio.run(_diff_files(self.repository))
+        if not modified_files:
+            print("No modified files found")
+        return modified_files
+    
+    def get_files_content(self):
+        modified_files = self.get_modified_files()
+        if not modified_files:
+            return []
+
+        file_contents = []
+        for file in modified_files:
+            content = asyncio.run(_get_file_content(self.repository, file))
+            file_contents.append((file, content))
+        
+        return file_contents
+
+    def generate_commit(self, temperature: float):
+        all_changes = self.get_changes_no_split()
+        files_content = self.get_files_content()
+        if len(files_content) == 0:
+            return "No changes found"
+
+        prompt = self.context + self.convention
+        for file, content in files_content:
+            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
+            prompt += content + "\n"
+            prompt += "CODE END HERE!!!\n\n"
+
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += all_changes + "\n"
+        prompt += "GIT DIFF END HERE!!!\n\n"
+
+        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
+
+
+        response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
+        return response
+
+
+    def commit(self, msg: str):
+        asyncio.run(_commit(self.repository, msg))
 
