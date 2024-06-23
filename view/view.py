@@ -42,12 +42,9 @@ class View:
 
         if title:
             title_line = f"{side_border} {title.center(max_line_length)} {side_border}"
-            header_footer_border = '+' + '-' * 74 + '+'
-
-        click.echo(header_footer_border)
-        if title:
+            click.echo(top_bottom_border)
             click.echo(title_line)
-            click.echo(header_footer_border)  
+            click.echo(top_bottom_border)  
         
         for line in content_lines:
             wrapped_lines = textwrap.wrap(line, width=max_line_length)
@@ -67,3 +64,6 @@ class View:
         click.echo("")
         user_input = click.prompt("""Type c to commit, r to regenerate, a to abort""")
         return user_input
+    
+    def display_visual_log(self, log_output):
+        self._display_with_frame(log_output, title = "Commits History Visualization")
