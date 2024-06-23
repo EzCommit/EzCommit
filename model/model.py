@@ -164,6 +164,7 @@ class Model:
             assert self.convention_path.exists(), "Convention file does not exist"
             self.convention = "Given this is the convention of the commit message: \n"
             self.convention += self.convention_path.read_text() + "\n"
+            print("Path:", self.convention_path)
 
     def create_commit(self):
         self.rag.generate_commit_message()
