@@ -19,9 +19,9 @@ class Key(Enum):
     REMOTE_FETCH_URL = 'remote.origin.fetch' 
 
 class Repository:
-    def __init__(self, repo_path: str):
-        self.repo = Repo(repo_path)
-        self.repo_path = repo_path
+    def __init__(self):
+        self.repo = Repo(REPO_PATH)
+        self.repo_path = REPO_PATH
     
     async def get_config(self, key: Key) -> str:
         try:

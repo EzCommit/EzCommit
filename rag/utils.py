@@ -2,9 +2,8 @@ import difflib
 import subprocess
 from openai import OpenAI
 
-# from constants import OPENAI_API_KEY
+from constants import OPENAI_API_KEY
 
-OPENAI_API_KEY = 'sk-proj-vM0b19a4YCxOHYcuPoEwT3BlbkFJGQASmoQHIIb2FZ1KTdRW'
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def split_text_into_line_chunks(text, chunk_size=4096):

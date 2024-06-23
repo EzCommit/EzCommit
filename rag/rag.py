@@ -8,10 +8,10 @@ import subprocess
 
 from constants import (
     COMMIT_COLLECTION,
-    REPO_PATH
+    REPO_PATH,
+    OPENAI_API_KEY
 )
 
-OPENAI_API_KEY = 'sk-proj-vM0b19a4YCxOHYcuPoEwT3BlbkFJGQASmoQHIIb2FZ1KTdRW'
 
 class RAG():
     def __init__(self):
