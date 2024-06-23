@@ -143,7 +143,7 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
 
 class GitModel:
     def __init__(self, context_path, convention_path):
-        self.repository = Repository('D:\COLLEGE\YEAR3\SEM2\CNPM\TEST')
+        self.repository = Repository('.')
         self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
 
         self.context_path = Path(context_path) if context_path else None
@@ -217,7 +217,16 @@ class GitModel:
         #response = "yes"
         return response
 
-
     def commit(self, msg: str):
         asyncio.run(_commit(self.repository, msg))
 
+    def get_visual_log(self):
+        try:
+            log_output = self.repository.repo.git.log(
+                            '--graph','--full-history','--all', '--color',   
+                            '--pretty=format: %C(bold blue)%d %C(reset) %C(green) %cd %C(reset) %s %C(cyan)(%an)%C(reset)',
+                            '--date=short')
+        except GitCommandError as e: 
+            print("No commits found")
+            return
+        return log_output

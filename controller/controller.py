@@ -35,3 +35,6 @@ class Controller:
         if (user_input == "c"):
             self.model.commit(msg)
 
+    def display_visual_log(self):
+        log_output = self.model.get_visual_log()
+        self.view.display_visual_log(log_output)
