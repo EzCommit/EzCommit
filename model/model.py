@@ -1,8 +1,14 @@
-from git import Repo, GitCommandError
+from rag.rag import RAG
 import subprocess
 import asyncio
 from typing import List
 from enum import Enum
+from git import Repo
+
+from constants import (
+    REPO_PATH,
+    OPENAI_API_KEY
+)
 from pathlib import Path
 from openai import AsyncOpenAI
 
@@ -13,9 +19,9 @@ class Key(Enum):
     REMOTE_FETCH_URL = 'remote.origin.fetch' 
 
 class Repository:
-    def __init__(self, repo_path: str):
-        self.repo = Repo(repo_path)
-        self.repo_path = repo_path
+    def __init__(self):
+        self.repo = Repo(REPO_PATH)
+        self.repo_path = REPO_PATH
     
     async def get_config(self, key: Key) -> str:
         try:
@@ -141,11 +147,10 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
     )
     return response.choices[0].message.content
 
-class GitModel:
-    def __init__(self, context_path, convention_path):
-        self.repository = Repository('.')
-        self.api_key = "sk-proj-ImOScqePAaYZCxRqC5sbT3BlbkFJfvqmWq08WatXAv4DdDsN"
-
+class Model:
+    def __init__(self, context_path: str = None, convention_path: str = None):
+        self.repository = Repository(REPO_PATH)
+        self.rag = RAG()
         self.context_path = Path(context_path) if context_path else None
         self.convention_path = Path(convention_path) if convention_path else None
         self.context = ""
@@ -160,6 +165,9 @@ class GitModel:
             self.convention = "Given this is the convention of the commit message: \n"
             self.convention += self.convention_path.read_text() + "\n"
             print("Path:", self.convention_path)
+
+    def create_commit(self):
+        self.rag.generate_commit_message()
 
     def get_changes(self):
         staged_changes = asyncio.run(_diff_detail(self.repository))
@@ -212,9 +220,8 @@ class GitModel:
 
         prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
 
-        print(prompt)
-        response = asyncio.run(_get_openai_answer(api_key=self.api_key, prompt=prompt, temperature=temperature))
-        #response = "yes"
+
+        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
         return response
 
     def commit(self, msg: str):

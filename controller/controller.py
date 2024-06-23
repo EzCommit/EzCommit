@@ -1,14 +1,18 @@
 from view.view import View
-from model.git import GitModel
+from model.model import Model
 
 class Controller:
     def __init__(self, model_configs: dict):
         self.view = View()
-        self.model = GitModel(**model_configs)
+        self.model = Model(**model_configs)
 
     def display_diff(self):
         diffs = self.model.get_changes()
         self.view.display_diff(diffs)
+
+    def create_commit(self):
+        self.model.create_commit()
+        # self.view.display_create_commit()
 
     def display_welcome_message(self):
         self.view.display_welcome_message()
