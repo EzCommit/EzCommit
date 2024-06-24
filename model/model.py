@@ -236,3 +236,48 @@ class Model:
             print("No commits found")
             return
         return log_output
+    
+    def get_pr_changes(self, pr_num = 1):
+        try:
+            current_branch = self.repository.active_branch 
+            merge_commits = self.repository.git.rev_list(
+                "--merges", "--first-parent", current_branch.name
+            ).splitlines()
+
+            # Get the first (latest) merge commit directly
+            commit_hash = merge_commits[pr_num - 1] 
+            commit = self.repository.commit(commit_hash)
+            parent_commit = commit.parents[0]
+
+            pr_log = self.repository.git.log(
+                        f"{parent_commit.hexsha}..{commit_hash}",
+                        "--pretty=format:%s",  # Get only commit messages
+                        "--no-merges"  # Exclude the merge commit itself
+                    ).splitlines()
+
+
+            pr_diff = self.repository.git.diff(parent_commit.hexsha, commit_hash)
+            #print(f"\nDiff for Pull Request (Merge Commit {commit_hash[:7]}):\n{diff_pr}")
+            #print(pr_log)
+            return [pr_log, pr_diff]
+        except GitCommandError as e:
+            return(f"Error: {e}")
+        except IndexError as e:
+            return("Error: No merge commits found on this branch.")
+
+
+    def summarize_changes(self, pr_num, temperature: float):
+        pr_log, pr_diff = self.get_pr_changes(pr_num)
+        if len(pr_diff) == 0:
+            return "No changes found"
+
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += pr_diff + "\n"
+        prompt += "GIT DIFF END HERE!!!\n\n"
+        prompt += """This is the output after using git log command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += pr_log + "\n"
+        prompt += "GIT LOG END HERE!!!\n\n"
+        prompt += "Write a descriptive and informative summaries for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
+
+        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
+        return response
