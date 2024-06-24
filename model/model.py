@@ -257,9 +257,8 @@ class Model:
 
 
             pr_diff = self.repository.git.diff(parent_commit.hexsha, commit_hash)
-            #print(f"\nDiff for Pull Request (Merge Commit {commit_hash[:7]}):\n{diff_pr}")
-            #print(pr_log)
             return [pr_log, pr_diff]
+            
         except GitCommandError as e:
             return(f"Error: {e}")
         except IndexError as e:
@@ -274,7 +273,7 @@ class Model:
         prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
         prompt += pr_diff + "\n"
         prompt += "GIT DIFF END HERE!!!\n\n"
-        prompt += """This is the output after using git log command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += """This is the output after using git log command, the output end after "GIT LOG END HERE!!!\n\n"""
         prompt += pr_log + "\n"
         prompt += "GIT LOG END HERE!!!\n\n"
         prompt += "Write a descriptive and informative summaries for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
