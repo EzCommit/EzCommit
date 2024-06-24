@@ -11,8 +11,66 @@ class Controller:
         self.view.display_diff(diffs)
 
     def create_commit(self):
-        self.model.create_commit()
-        # self.view.display_create_commit()
+        temperature = 0.8
+        if self.model.repository.repo.is_dirty():
+            select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
+            if select == 'n':
+                cmt_msg = self.model.create_commit_message(all_changes=False)
+            if select == 'y':
+                cmt_msg = self.model.create_commit_message(all_changes=True)
+
+            while True:
+                select = self.view.display_generated_commit(cmt_msg)
+                if select == 'a':
+                    return
+                
+                if select == 'r':
+                    temperature += 0.1
+                    cmt_msg = self.model.create_commit_message(all_changes=False, temperature=temperature)
+                    continue
+                
+                if select == 'c': 
+                    self.model.commit(cmt_msg)
+                    return
+        else: 
+            self.view.display_notification("No changes")
+
+        remotes = self.model.repository.repo.remotes
+        remote_names = [remote.name for remote in remotes]
+
+        remote_dict = {}
+        for remote in remotes:
+            remote_dict[remote.name] = remote
+            
+        if not remote_names:
+            self.view.display_notification("No remotes available")
+            return
+
+        while True:
+            select = self.view.display_selection("Do you want to push the commit to a remote?", ["Yes (y)", "No (n)"])
+            if select == 'exit':
+                return
+            
+            if select != 'n' and select != 'y':
+                self.view.display_notification("Invalid selected")
+                continue
+            else:
+                break
+
+        if select == 'n':
+            return
+        
+        while True:
+            select_remote = self.view.display_selection("Select a remote to push to:", remote_names)
+            if select_remote == 'exit':
+                return
+
+            if select_remote in remote_names:
+                self.view.display_notification(f"Pushed to remote {select_remote}")
+                remote_dict[select_remote].push()
+                break
+            else:
+                self.view.display_notification("Invalid remote selected")
 
     def display_welcome_message(self):
         self.view.display_welcome_message()

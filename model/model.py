@@ -2,49 +2,25 @@ from rag.rag import RAG
 import subprocess
 import asyncio
 from typing import List
-from enum import Enum
-from git import Repo
+import subprocess
 
 from constants import (
     REPO_PATH,
-    OPENAI_API_KEY
+    OPENAI_API_KEY,
+    CONTEXT_PATH_DEFAULT
 )
 from pathlib import Path
 from openai import AsyncOpenAI
 
-class Key(Enum):
-    USER_EMAIL = 'user.email'
-    USER_NAME = 'user.name'
-    REMOTE_URL = 'remote.origin.url'
-    REMOTE_FETCH_URL = 'remote.origin.fetch' 
+from model.repository import Repository
 
-class Repository:
-    def __init__(self):
-        self.repo = Repo(REPO_PATH)
-        self.repo_path = REPO_PATH
-    
-    async def get_config(self, key: Key) -> str:
-        try:
-            return self.repo.git.config('--get', key.value)
-        except GitCommandError as e:
-            return f"Error: {e}"
-
-    async def get_configs(self, keys: List[Key]) -> dict:
-        return {key: await self.get_config(key) for key in keys}
-
-    async def set_config(self, key: str, value: str) -> str:
-        try:
-            self.repo.git.config(key, value)
-            return "Config set successfully"
-        except GitCommandError as e:
-            return f"Error: {e}"
-
-    async def getObjectDetails(self, treeish: str, path: str):
-        try:
-            return self.repo.git.cat_file('-p', f"{treeish}:{path}")
-        except GitCommandError as e:
-            return f"Error: {e}"
-
+async def _commit(msg: str) -> list:
+    cwd = REPO_PATH
+    cmd = "commit"
+    full_options = ['-m', msg]
+    stdout, stderr = await _execute(cwd, cmd, full_options)
+    print(stderr)
+    return stdout
 
 
 async def _execute(cwd: str, subcommand: str, options: List[str] = []) -> (str, str):
@@ -111,7 +87,9 @@ async def _diff_files(repository: Repository, options: list = []) -> list:
 async def _diff_detail_no_split(repository: Repository, options: list = []) -> list:
     cwd = repository.repo_path
     cmd = "diff"
-    full_options = []
+    full_options = [
+        *options,
+    ]
 
     stdout, stderr = await _execute(cwd, cmd, full_options)
 
@@ -127,11 +105,6 @@ async def _get_file_content(repository: Repository, file_path: str) -> str:
     except Exception as e:
         return f"Error: {e}"
     
-async def _commit(repository: Repository, msg: str) -> list:
-    cwd = repository.repo_path
-    cmd = "commit"
-    full_options = ['-a', '-m', msg]
-    stdout, stderr = await _execute(cwd, cmd, full_options)
     
 async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> str:
     client = AsyncOpenAI(api_key=api_key)
@@ -148,29 +121,37 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
     return response.choices[0].message.content
 
 class Model:
-    def __init__(self, context_path: str = None, convention_path: str = None):
+    def __init__(self, context_path, convention_path):
         self.repository = Repository()
         self.rag = RAG()
-        self.context_path = Path(context_path) if context_path else None
+
+        if context_path == None:
+            context_path = CONTEXT_PATH_DEFAULT
+
+        self.context_path = Path(context_path)
         self.convention_path = Path(convention_path) if convention_path else None
         self.context = ""
         self.convention = ""
 
-        if self.context_path:
-            assert self.context_path.exists(), "Context file does not exist"
-            self.context = "Given this is the context of the commit message: \n"
-            self.context += self.context_path.read_text() + "\n"
+        self.context = "Given this is the context of the commit message: \n"
+        self.context += self.context_path.read_text() + "\n"
+
         if self.convention_path:
             assert self.convention_path.exists(), "Convention file does not exist"
             self.convention = "Given this is the convention of the commit message: \n"
             self.convention += self.convention_path.read_text() + "\n"
-            print("Path:", self.convention_path)
 
-    def create_commit(self):
-        self.rag.generate_commit_message()
+    def create_commit_message(self, all_changes: bool, temperature: float = 0.8):
+        if all_changes:
+            asyncio.run(_execute(self.repository.repo_path, "add", ["."]))
+
+        all_changes_with_staged = asyncio.run(_diff_detail_no_split(self.repository, ['--cached']))
+        commit_message = self.rag.generate_commit_message(all_changes_with_staged, self.convention, temperature)
+
+        return commit_message
 
     def get_changes(self):
-        staged_changes = asyncio.run(_diff_detail(self.repository))
+        staged_changes = asyncio.run(_diff_detail(self.repository, '--cached'))
         if staged_changes:
             print("Found staged changes")
             return staged_changes
@@ -202,29 +183,8 @@ class Model:
         
         return file_contents
 
-    def generate_commit(self, temperature: float):
-        all_changes = self.get_changes_no_split()
-        files_content = self.get_files_content()
-        if len(files_content) == 0:
-            return "No changes found"
-
-        prompt = self.context + self.convention
-        for file, content in files_content:
-            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
-            prompt += content + "\n"
-            prompt += "CODE END HERE!!!\n\n"
-
-        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
-        prompt += all_changes + "\n"
-        prompt += "GIT DIFF END HERE!!!\n\n"
-
-        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
-
-        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
-        return response
-
     def commit(self, msg: str):
-        asyncio.run(_commit(self.repository, msg))
+        asyncio.run(_commit(msg))
 
     def get_visual_log(self):
         try:

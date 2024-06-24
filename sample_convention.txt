@@ -1,11 +1,5 @@
-<header>
-<BLANK LINE>
-<body>
-<BLANK LINE>
-<footer>
+format: <type>: <message>
 
-<header>: <type>(<scope>): <subject>
-<type>:
 - `feat`: A new feature for the user.
 - `fix`: A bug fix for the user.
 - `docs`: Documentation only changes.

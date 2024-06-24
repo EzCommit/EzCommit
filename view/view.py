@@ -59,11 +59,22 @@ class View:
             click.echo(msg)
             return "a"
         
-        click.echo("Generated commit: ")
-        click.echo(msg)
+        self._display_with_frame(msg, title="Generated Commit")
         click.echo("")
         user_input = click.prompt("""Type c to commit, r to regenerate, a to abort""")
         return user_input
     
     def display_visual_log(self, log_output):
         self._display_with_frame(log_output, title = "Commits History Visualization")
+
+    def display_selection(self, question, options):
+        message = ''
+        for i, option in enumerate(options):
+            message += f"{option}\n"
+
+        self._display_with_frame(f"Option:\n{message}", question)
+        user_input = click.prompt("Choose an option")
+        return user_input
+
+    def display_notification(self, msg):
+        self._display_with_frame(msg, "Notification")

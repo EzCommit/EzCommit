@@ -1,10 +1,5 @@
 import difflib
 import subprocess
-from openai import OpenAI
-
-from constants import OPENAI_API_KEY
-
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 def split_text_into_line_chunks(text, chunk_size=4096):
     lines = text.split('\n')
@@ -28,7 +23,7 @@ def split_text_into_line_chunks(text, chunk_size=4096):
 
 
 
-def get_commit_diff(commit, repo_path):
+def get_commit_diff(commit, repo_path, client):
     parent_commit = commit.parents[0] if commit.parents else None
     if parent_commit:
         diff_cmd = ['git', 'diff', parent_commit.hexsha, commit.hexsha]

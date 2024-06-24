@@ -1,9 +1,10 @@
 import chromadb
+import git
+import subprocess
 from openai import OpenAI
 from .utils import split_text_into_line_chunks
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-from .ingest import update_database
-import subprocess
+from rag.ingest import Ingest
 
 
 from constants import (
@@ -15,27 +16,21 @@ from constants import (
 
 class RAG():
     def __init__(self):
-        update_database()
+        self.repo = git.Repo(REPO_PATH)
         self.client = chromadb.PersistentClient(path='db')
         self.collection = self.client.get_collection(name=COMMIT_COLLECTION)
         self.llm_client = OpenAI(api_key=OPENAI_API_KEY)
+
+        self.ingest = Ingest(self.client, self.llm_client, self.repo)
+        self.ingest.update_database()
         self.embedding_function = DefaultEmbeddingFunction()
 
-    def generate_commit_message(self):
-        # Xây dựng lệnh git diff
-        diff_cmd = ['git', 'diff']
-        
-        # Thực hiện lệnh và lấy kết quả
-        result = subprocess.check_output(diff_cmd, cwd=REPO_PATH)
-        diff = result.decode('utf-8')
-        
-        # Tạo embedding cho git diff mới
+    def generate_commit_message(self, diff, convention, temperature):
         summaries, embedding = self._embed_diff(diff)
-
         similar_diffs = self._query_similar_diffs(embedding)
-        commit_message = self._create_commit_message(similar_diffs, summaries)
-        
-        print(commit_message)
+        commit_message = self._create_commit_message(similar_diffs, summaries, convention, temperature)
+
+        return commit_message
 
 
     def _embed_diff(self, diff):
@@ -58,22 +53,21 @@ class RAG():
         results = self.collection.query(query_embeddings=[embedding], n_results=5)
         return results['documents']
     
-    def _create_commit_message(self, similar_diffs, diff):
-        prompt = "Dựa trên các thay đổi sau và các thay đổi tương tự trước đây, hãy tạo một commit message: \n\n"
-        prompt += "Thay đổi mới:\n" + diff + "\n\n"
-        prompt += "Các thay đổi tương tự trước đây:\n"
+    def _create_commit_message(self, similar_diffs, diff, convention, temperature):
+        prompt = "New change:\n" + diff + "\n\n"
+        prompt += "Previous similar changes:\n"
         for i, similar_diff in enumerate(similar_diffs):
-            prompt += f"Thay đổi tương tự {i+1}:\n{similar_diff}\n\n"
+            prompt += f"Similar change {i+1}:\n{similar_diff}\n\n"
+        prompt += "\n\nCreate a one-line commit message according to one of the following convention formats:\n" + convention
 
         response = self.llm_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=150
+            max_tokens=150,
+            temperature=temperature
         )
+
+        return response.choices[0].message.content.strip()
         
-        # Trích xuất commit message từ kết quả của ChatGPT
-        commit_message = response.choices[0].message.content.strip()
-        
-        return commit_message
