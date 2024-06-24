@@ -1,5 +1,5 @@
 import pytest
-from model.git import Model
+from model.model import Model
 
 
 def test_success_import_context():

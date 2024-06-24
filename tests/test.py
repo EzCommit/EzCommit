@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from controller.controller import Controller
-from model.git import GitModel
+from model.model import Model
 from view.view import View
 
 @pytest.fixture

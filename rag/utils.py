@@ -44,7 +44,7 @@ def get_commit_diff(commit, repo_path):
                 ],
                 max_tokens=500
             )
-            summary = response.choices[0].message.content
+            summary = response.choices[0].message.content 
             summaries.append(summary)
         
         return "\n".join(summaries)
