@@ -31,7 +31,7 @@ class Controller:
                 
                 if select == 'c': 
                     self.model.commit(cmt_msg)
-                    return
+                    break
         else: 
             self.view.display_notification("No changes")
 
