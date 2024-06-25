@@ -6,10 +6,14 @@ import click
 @click.option('--context_path', help='Path to context file')
 @click.option('--convention_path', help='Path to convention file')
 @click.option('--gen-cmt', is_flag=True, help='Display git differences.')
+@click.option('-fast', is_flag=True, help='Use fast mode for commit generation.')
 def main(**kwargs):
     controller = Controller({'context_path': kwargs.get('context_path'), 'convention_path': kwargs.get('convention_path')})
     if kwargs.get('gen_cmt'):
-        controller.create_commit()
+        if kwargs.get('fast'):
+            controller.create_commit_fast()
+        else:
+            controller.create_commit()
     elif kwargs.get('--visual'):
         controller.display_visual_log()
     else:
