@@ -182,6 +182,31 @@ class Model:
             file_contents.append((file, content))
         
         return file_contents
+    
+    def generate_commit(self, stages: bool, temperature: float):
+        if stages:
+            asyncio.run(_execute(self.repository.repo_path, "add", ["."]))
+
+        all_changes = self.get_changes_no_split()
+        files_content = self.get_files_content()
+        if len(files_content) == 0:
+            return "No changes found"
+
+        prompt = self.context + self.convention
+        for file, content in files_content:
+            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
+            prompt += content + "\n"
+            prompt += "CODE END HERE!!!\n\n"
+
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += all_changes + "\n"
+        prompt += "GIT DIFF END HERE!!!\n\n"
+
+        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
+
+        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
+        #response = "yes"
+        return response
 
     def commit(self, msg: str):
         asyncio.run(_commit(msg))
