@@ -2,17 +2,46 @@ from view.view import View
 from model.model import Model
 
 class Controller:
-    def __init__(self, model_configs: dict):
+    def __init__(self, config):
         self.view = View()
-        self.model = Model(**model_configs)
+        self.model = Model(config)
 
     def display_diff(self):
         diffs = self.model.get_changes()
         self.view.display_diff(diffs)
 
+    def create_pull_request(self):
+        src_branch = self.model.get_current_branch()
+        branches = self.model.list_all_branches()
+        branches.remove(src_branch)
+        while True: 
+            dest_branch = self.view.display_selection("Which branch do you want to pull request into?", branches)
+
+            if dest_branch == 'exit':
+                return
+
+            if dest_branch not in branches and not dest_branch.isdigit():
+                self.view.display_notification("Invalid branch selected")
+                continue
+
+            if dest_branch.isdigit():
+                if int(dest_branch) not in range(1, len(branches) + 1):
+                    self.view.display_notification("Invalid branch selected")
+                    continue
+                dest_branch = branches[int(dest_branch) - 1]
+
+            content, title = self.model.create_pr_content(src_branch, dest_branch)
+            break
+
+        repo_name = self.model.repository.get_repo_name()
+        try:
+            self.model.create_pull_request(repo_name, src_branch, dest_branch, content, title)
+        except Exception as e:
+            self.view.display_error(e.data.get('errors')[0]['message'])
+
     def create_commit(self):
         temperature = 0.8
-        if self.model.repository.repo.is_dirty():
+        if self.model.repository.repo.is_dirty() or self.model.repository.repo.untracked_files:
             select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
             if select == 'n':
                 cmt_msg = self.model.create_commit_message(all_changes=False)
@@ -20,6 +49,7 @@ class Controller:
                 cmt_msg = self.model.create_commit_message(all_changes=True)
 
             while True:
+                self.view.clear()
                 select = self.view.display_generated_commit(cmt_msg)
                 if select == 'a':
                     return
@@ -31,9 +61,10 @@ class Controller:
                 
                 if select == 'c': 
                     self.model.commit(cmt_msg)
-                    return
+                    break
         else: 
             self.view.display_notification("No changes")
+            cmt_msg = "No changes"
 
         remotes = self.model.repository.repo.remotes
         remote_names = [remote.name for remote in remotes]
@@ -66,19 +97,14 @@ class Controller:
                 return
 
             if select_remote in remote_names:
+                remote = remote_dict[select_remote].push(refspec=f'{self.model.get_current_branch()}:{self.model.get_current_branch()}')
                 self.view.display_notification(f"Pushed to remote {select_remote}")
-                remote_dict[select_remote].push()
                 break
             else:
                 self.view.display_notification("Invalid remote selected")
 
     def display_welcome_message(self):
         self.view.display_welcome_message()
-        self.view.display_feature()
-    
-    def test(self):
-        diffs = self.model.generate_commit()
-        print(diffs)
 
     def generate_commit(self):
         temperature = 0.8
@@ -100,3 +126,7 @@ class Controller:
     def display_visual_log(self):
         log_output = self.model.get_visual_log()
         self.view.display_visual_log(log_output)
+
+    @staticmethod
+    def display_notification(msg):
+        View.display_notification(msg)

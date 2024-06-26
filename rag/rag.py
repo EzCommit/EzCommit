@@ -15,13 +15,13 @@ from constants import (
 
 
 class RAG():
-    def __init__(self):
+    def __init__(self, config):
         self.repo = git.Repo(REPO_PATH)
-        self.client = chromadb.PersistentClient(path='db')
-        self.collection = self.client.get_collection(name=COMMIT_COLLECTION)
+        self.client = chromadb.PersistentClient(path=config.db_path)
+        self.collection = self.client.get_or_create_collection(name=COMMIT_COLLECTION)
         self.llm_client = OpenAI(api_key=OPENAI_API_KEY)
 
-        self.ingest = Ingest(self.client, self.llm_client, self.repo)
+        self.ingest = Ingest(self.client, self.llm_client, self.repo, config)
         self.ingest.update_database()
         self.embedding_function = DefaultEmbeddingFunction()
 

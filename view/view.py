@@ -33,7 +33,8 @@ class View:
         ]
         self._display_with_frame(welcome_lines, title="Welcome Message")
 
-    def _display_with_frame(self, content_lines, title=""):
+    @staticmethod
+    def _display_with_frame(content_lines, title=""):
         if isinstance(content_lines, str):
             content_lines = content_lines.split('\n')
         top_bottom_border = '+' + '-' * 74 + '+'
@@ -72,9 +73,22 @@ class View:
         for i, option in enumerate(options):
             message += f"{option}\n"
 
-        self._display_with_frame(f"Option:\n{message}", question)
-        user_input = click.prompt("Choose an option")
+        options_str = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+
+        self._display_with_frame(f"Option:\n{options_str}", question)
+        user_input = click.prompt("Choose an option (type the number or name)")
         return user_input
 
-    def display_notification(self, msg):
-        self._display_with_frame(msg, "Notification")
+    @staticmethod
+    def display_notification(msg):
+        click.clear()
+        View._display_with_frame(msg, "Notification")
+
+    @staticmethod
+    def display_error(msg):
+        click.clear()
+        View._display_with_frame(msg, "Error Message")
+
+    def clear(self):
+        click.clear()
+    

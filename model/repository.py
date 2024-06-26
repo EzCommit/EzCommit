@@ -3,7 +3,6 @@ from enum import Enum
 from typing import List
 
 from constants import (
-    REPO_PATH,
     OPENAI_API_KEY
 )
 
@@ -13,10 +12,33 @@ class Key(Enum):
     REMOTE_URL = 'remote.origin.url'
     REMOTE_FETCH_URL = 'remote.origin.fetch' 
 
+
 class Repository:
-    def __init__(self):
-        self.repo = Repo(REPO_PATH)
-        self.repo_path = REPO_PATH
+    def __init__(self, config):
+        self.config = config
+        self.repo = Repo(config.repo_path)
+        self.repo_path = config.repo_path
+
+    def get_repo_name(self):
+        try:
+            origin_url = self.repo.remotes.origin.url
+            
+            if origin_url.endswith('.git'):
+                origin_url = origin_url[:-4]
+            
+            parts = origin_url.split('/')
+            if origin_url.startswith('git@github.com:'):
+                full_name = origin_url.split(':')[1]
+            elif origin_url.startswith('https://github.com/'):
+                full_name = '/'.join(origin_url.split('/')[-2:])
+            else:
+                print("URL is not from GitHub")
+                return None
+
+            return full_name
+        except Exception as e:
+            print(f"Error fetching repository name: {e}")
+            return None
     
     async def get_config(self, key: Key) -> str:
         try:
