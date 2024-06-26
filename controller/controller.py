@@ -53,8 +53,7 @@ class Controller:
             print(e)
             # self.view.display_error(e.data.get('errors', 'Unknown error')[0]['message'])
         except Exception as e:
-            self.view.display_error('Unknown error')
-        # self.view.display_notification(f"Pull request created: {pr.html_url}")
+            self.view.display_error(e.data.get('message'))
 
     def create_commit(self):
         temperature = 0.8
