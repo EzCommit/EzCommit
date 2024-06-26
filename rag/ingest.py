@@ -1,6 +1,5 @@
 from .utils import get_commit_diff
 from constants import (
-    REPO_PATH,
     COMMIT_COLLECTION
 )
 
@@ -18,7 +17,7 @@ class Ingest:
             if existing_commit['ids']:
                 continue
 
-            commit_diff = get_commit_diff(commit, REPO_PATH, self.llm_client)
+            commit_diff = get_commit_diff(commit, self.config.repo_path, self.llm_client)
             print(f"Processing commit {commit.hexsha}")
 
             collection.add(

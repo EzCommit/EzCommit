@@ -1,5 +1,8 @@
 from view.view import View
 from model.model import Model
+from openai import AuthenticationError
+from github import GithubException
+
 
 class Controller:
     def __init__(self, config):
@@ -30,23 +33,44 @@ class Controller:
                     continue
                 dest_branch = branches[int(dest_branch) - 1]
 
-            content, title = self.model.create_pr_content(src_branch, dest_branch)
+            try:
+                content, title = self.model.create_pr_content(src_branch, dest_branch)
+            except AuthenticationError as e:
+                self.view.display_error(e.body.get('message', 'Unknown error'))
+            except Exception as e:
+                self.view.display_error('Unknown error')
+
             break
 
         repo_name = self.model.repository.get_repo_name()
         try:
-            self.model.create_pull_request(repo_name, src_branch, dest_branch, content, title)
+            pr = self.model.create_pull_request(repo_name, src_branch, dest_branch, content, title)
+
+            self.view.display_notification(f"Pull request created: {pr.html_url}")
+        except AuthenticationError as e:
+            self.view.display_error(e.body.get('message', 'Unknown error'))
+        except GithubException as e:
+            print(e)
+            # self.view.display_error(e.data.get('errors', 'Unknown error')[0]['message'])
         except Exception as e:
-            self.view.display_error(e.data.get('errors')[0]['message'])
+            self.view.display_error('Unknown error')
+        # self.view.display_notification(f"Pull request created: {pr.html_url}")
 
     def create_commit(self):
         temperature = 0.8
         if self.model.repository.repo.is_dirty() or self.model.repository.repo.untracked_files:
             select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
-            if select == 'n':
-                cmt_msg = self.model.create_commit_message(all_changes=False)
-            if select == 'y':
-                cmt_msg = self.model.create_commit_message(all_changes=True)
+            try: 
+                if select == 'n':
+                    cmt_msg = self.model.create_commit_message(all_changes=False)
+                if select == 'y':
+                    cmt_msg = self.model.create_commit_message(all_changes=True)
+            except AuthenticationError as e:
+                self.view.display_error(e.body.get('message', 'Unknown error'))
+            except Exception as e:
+                self.view.display_error('Unknown error')
+
+                return
 
             while True:
                 self.view.clear()
@@ -56,8 +80,12 @@ class Controller:
                 
                 if select == 'r':
                     temperature += 0.1
-                    cmt_msg = self.model.create_commit_message(all_changes=False, temperature=temperature)
-                    continue
+                    try:
+                        cmt_msg = self.model.create_commit_message(all_changes=False, temperature=temperature)
+                        continue
+                    except Exception as e:
+                        self.view.display_error(e.body.get('message', 'Unknown error'))
+
                 
                 if select == 'c': 
                     self.model.commit(cmt_msg)

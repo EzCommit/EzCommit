@@ -147,10 +147,12 @@ class Model:
             self.convention = ''
 
     def create_pr_content(self, branch_a, branch_b):
-        # self.repository.repo.git.checkout(branch_a)
-        # self.repository.repo.remotes.origin.pull()
-        # self.repository.repo.git.checkout(branch_b)
-        # self.repository.repo.remotes.origin.pull()
+        try:
+            print(f"Checking out and pull {branch_b}")
+            self.repository.repo.remotes.origin.pull(refspec=f'{branch_b}:{branch_b}')
+        except Exception as e:
+            print(e)
+
 
         summaries = []
         for commit in self.repository.repo.iter_commits(f'{branch_b}..{branch_a}'):
@@ -180,7 +182,7 @@ class Model:
         prompt_content += "\n".join(summaries)
         content = _get_openai_answer(self.rag.llm_client, prompt_content, 0.8)
 
-        prompt_title = "Based on the following summarized commit messages, create a professional pull request title that consolidates all changes into a single PR."
+        prompt_title = "Based on the following summarized commit messages, create a professional pull request title that consolidates all changes into a single PR. Output should be contain only title.\n"
         prompt_title += "\n".join(summaries)
         title = _get_openai_answer(self.rag.llm_client, prompt_title, 0.8)
 
@@ -189,7 +191,6 @@ class Model:
     def create_pull_request(self, repo_name, branch_a, branch_b, content, title):
         auth = Auth.Token("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")
         g = Github(auth=auth)
-        print(repo_name)
         repo = g.get_repo(repo_name)
         pr = repo.create_pull(
             title=title,
@@ -197,6 +198,8 @@ class Model:
             head=branch_a,
             base=branch_b
         )
+
+        return pr
             
 
 

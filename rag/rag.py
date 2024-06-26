@@ -6,22 +6,21 @@ from .utils import split_text_into_line_chunks
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 from rag.ingest import Ingest
 
-
 from constants import (
     COMMIT_COLLECTION,
-    REPO_PATH,
     OPENAI_API_KEY
 )
 
 
 class RAG():
     def __init__(self, config):
-        self.repo = git.Repo(REPO_PATH)
+        self.config = config
+        self.repo = git.Repo(self.config.repo_path)
         self.client = chromadb.PersistentClient(path=config.db_path)
         self.collection = self.client.get_or_create_collection(name=COMMIT_COLLECTION)
         self.llm_client = OpenAI(api_key=OPENAI_API_KEY)
 
-        self.ingest = Ingest(self.client, self.llm_client, self.repo, config)
+        self.ingest = Ingest(self.client, self.llm_client, self.repo, self.config)
         self.ingest.update_database()
         self.embedding_function = DefaultEmbeddingFunction()
 

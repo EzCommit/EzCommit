@@ -77,7 +77,7 @@ class View:
 
         self._display_with_frame(f"Option:\n{options_str}", question)
         user_input = click.prompt("Choose an option (type the number or name)")
-        return user_input
+        return user_input.strip()
 
     @staticmethod
     def display_notification(msg):
