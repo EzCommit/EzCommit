@@ -50,8 +50,7 @@ class Controller:
         except AuthenticationError as e:
             self.view.display_error(e.body.get('message', 'Unknown error'))
         except GithubException as e:
-            print(e)
-            # self.view.display_error(e.data.get('errors', 'Unknown error')[0]['message'])
+            self.view.display_error(e.data.get('errors', 'Unknown error')[0]['message'])
         except Exception as e:
             self.view.display_error(e.data.get('message'))
 
