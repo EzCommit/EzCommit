@@ -5,10 +5,11 @@ from constants import (
 )
 
 class Ingest:
-    def __init__(self, client, llm_client, repo):
+    def __init__(self, client, llm_client, repo, config):
         self.client = client 
         self.llm_client = llm_client
         self.repo = repo
+        self.config = config
     
     def update_database(self):
         collection = self.client.get_or_create_collection(COMMIT_COLLECTION)

@@ -1,11 +1,13 @@
 from rag.rag import RAG
+import requests
 import subprocess
 import asyncio
-from typing import List
+from typing import List, Optional
 import subprocess
+from github import Github, Auth
+
 
 from constants import (
-    REPO_PATH,
     OPENAI_API_KEY,
     CONTEXT_PATH_DEFAULT
 )
@@ -13,9 +15,10 @@ from pathlib import Path
 from openai import AsyncOpenAI
 
 from model.repository import Repository
+from rag.utils import split_text_into_line_chunks
 
-async def _commit(msg: str) -> list:
-    cwd = REPO_PATH
+async def _commit(repo_path:str, msg: str) -> list:
+    cwd = repo_path
     cmd = "commit"
     full_options = ['-m', msg]
     stdout, stderr = await _execute(cwd, cmd, full_options)
@@ -104,11 +107,10 @@ async def _get_file_content(repository: Repository, file_path: str) -> str:
             return file.read()
     except Exception as e:
         return f"Error: {e}"
+
     
-    
-async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> str:
-    client = AsyncOpenAI(api_key=api_key)
-    response = await client.chat.completions.create(
+def _get_openai_answer(client, prompt: str, temperature: float) -> str:
+    response = client.chat.completions.create(
         messages=[{
             "role": "user",
             "content": prompt,
@@ -116,30 +118,100 @@ async def _get_openai_answer(api_key: str, prompt: str, temperature: float) -> s
         model="gpt-3.5-turbo-0125",
         temperature=temperature,
         top_p=1,
-        max_tokens=100,
+        max_tokens=500,
     )
+
     return response.choices[0].message.content
 
+
+
+
+    
 class Model:
-    def __init__(self, context_path, convention_path):
-        self.repository = Repository()
-        self.rag = RAG()
+    def __init__(self, config):
+        self.config = config
+        self.rag = RAG(self.config)
+        self.repository = Repository(self.config)
 
-        if context_path == None:
-            context_path = CONTEXT_PATH_DEFAULT
-
-        self.context_path = Path(context_path)
-        self.convention_path = Path(convention_path) if convention_path else None
-        self.context = ""
-        self.convention = ""
-
-        self.context = "Given this is the context of the commit message: \n"
-        self.context += self.context_path.read_text() + "\n"
+        # self.context_path = Path(config.context_path) if config.context_path else None
+        self.convention_path = Path(config.convention_path) if config.convention_path else None
 
         if self.convention_path:
-            assert self.convention_path.exists(), "Convention file does not exist"
-            self.convention = "Given this is the convention of the commit message: \n"
-            self.convention += self.convention_path.read_text() + "\n"
+            try: 
+                self.convention = "Given this is the context of the commit message: \n"
+                self.convention += self.convention_path.read_text() + "\n"
+            except (FileNotFoundError, IOError) as e:
+                print(f"Error reading context file: {e}")
+                self.context = "Context file could not be read.\n"
+        else: 
+            self.convention = ''
+
+    def create_pr_content(self, branch_a, branch_b):
+        # self.repository.repo.git.checkout(branch_a)
+        # self.repository.repo.remotes.origin.pull()
+        # self.repository.repo.git.checkout(branch_b)
+        # self.repository.repo.remotes.origin.pull()
+
+        summaries = []
+        for commit in self.repository.repo.iter_commits(f'{branch_b}..{branch_a}'):
+            parent_commit = commit.parents[0] if commit.parents else None
+            if parent_commit:
+                stdout, stderr = asyncio.run(_execute(self.repository.repo_path, 'diff', [parent_commit.hexsha, commit.hexsha]))
+                for chunk in split_text_into_line_chunks(stdout):
+                    response = self.rag.llm_client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
+                        ],
+                        max_tokens=500
+                    )
+                    summaries.append(response.choices[0].message.content)
+
+
+        prompt_content = """
+            Based on the following summarized commit messages, create a professional pull request description that consolidates all changes into a single PR. The description should be well-structured and presented in Markdown format. It should include the following sections:
+            * Title: A concise title for the pull request.
+            * Description: A brief overview of what this pull request does.
+            * Changes: A detailed list of changes introduced by the commits.
+            * Testing: Instructions on how to test the changes.
+            * Related Issues: References to any related issues or tickets.
+            * Checklist: A checklist to ensure that all steps have been completed before merging.\n
+        """
+        prompt_content += "\n".join(summaries)
+        content = _get_openai_answer(self.rag.llm_client, prompt_content, 0.8)
+
+        prompt_title = "Based on the following summarized commit messages, create a professional pull request title that consolidates all changes into a single PR."
+        prompt_title += "\n".join(summaries)
+        title = _get_openai_answer(self.rag.llm_client, prompt_title, 0.8)
+
+        return content, title
+
+    def create_pull_request(self, repo_name, branch_a, branch_b, content, title):
+        auth = Auth.Token("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")
+        g = Github(auth=auth)
+        print(repo_name)
+        repo = g.get_repo(repo_name)
+        pr = repo.create_pull(
+            title=title,
+            body=content,
+            head=branch_a,
+            base=branch_b
+        )
+            
+
+
+    def get_current_branch(self):
+        return self.repository.repo.active_branch.name
+
+    def list_all_branches(self):
+        try:
+            branches = [head.name for head in self.repository.repo.heads]
+            return branches
+        except Exception as e:
+            print(f"Có lỗi xảy ra: {e}")
+            exit(1)
+        
+
 
     def create_commit_message(self, all_changes: bool, temperature: float = 0.8):
         if all_changes:
@@ -184,7 +256,7 @@ class Model:
         return file_contents
 
     def commit(self, msg: str):
-        asyncio.run(_commit(msg))
+        asyncio.run(_commit(self.config.repo_path, msg))
 
     def get_visual_log(self):
         try:
