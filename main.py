@@ -40,7 +40,7 @@ def main(**kwargs):
 
     if kwargs.get('gen_cmt'):
         controller.create_commit()
-    elif kwargs.get('--visual'):
+    elif kwargs.get('visual'):
         controller.display_visual_log()
     elif kwargs.get('gen_pr'):
         controller.create_pull_request()

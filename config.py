@@ -6,6 +6,7 @@ from git import Repo, InvalidGitRepositoryError, NoSuchPathError
 class EZCommitConfig:
     CONFIG_DIR = ".ezcommit"
     CONFIG_FILE = "config.json"
+    DEFAULT_CONVENTION = "default_convention.txt"
 
     def __init__(self, repo_path, convention_path, db_path):
         self.repo_path = repo_path
@@ -27,7 +28,7 @@ class EZCommitConfig:
             os.makedirs(config_path)
         
         config_file_path = os.path.join(config_path, EZCommitConfig.CONFIG_FILE)
-        
+        convention_file_path = os.path.join(config_path, EZCommitConfig.DEFAULT_CONVENTION)
         config_data = {
             "REPO_PATH": repo_path,
             "CONVENTION_PATH": f"{repo_path}/.ezcommit/default_convention.txt",
@@ -37,16 +38,21 @@ class EZCommitConfig:
         with open(config_file_path, 'w') as config_file:
             json.dump(config_data, config_file, indent=4)
         
-        
-        src_default_convention = os.path.join(os.path.dirname(__file__), "helper", "default_convention.txt")
-        dest_default_convention = os.path.join(config_path, "default_convention.txt")
-        if os.path.exists(src_default_convention):
-            shutil.copy(src_default_convention, dest_default_convention)
-            print(f"Moved default_convention to {dest_default_convention}")
-        else:
-            print(f"File {src_default_convention} does not exist")
+        with open(convention_file_path, 'w') as file:
+            file.write(
+                "format: <type>: <message>\n\n\
+                - `feat`: A new feature for the user.\n\
+                - `fix`: A bug fix for the user.\n\
+                - `docs`: Documentation only changes.\n\
+                - `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc).\n\
+                - `refactor`: A code change that neither fixes a bug nor adds a feature.\n\
+                - `perf`: A code change that improves performance.\n\
+                - `test`: Adding missing tests or correcting existing tests.\n\
+                - `build`: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm).\n\
+                - `ci`: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs).\n\
+                - `chore`: Other changes that don't modify src or test files.\n")
 
-        return f"Configuration initialized and saved to {config_file_path}"
+        return f"Configuration initialized and saved to {config_path}"
 
     @staticmethod
     def load_config(repo_path):
