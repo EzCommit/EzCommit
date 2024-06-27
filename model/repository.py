@@ -2,10 +2,6 @@ from git import Repo
 from enum import Enum
 from typing import List
 
-from constants import (
-    OPENAI_API_KEY
-)
-
 class Key(Enum):
     USER_EMAIL = 'user.email'
     USER_NAME = 'user.name'

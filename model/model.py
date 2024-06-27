@@ -8,7 +8,6 @@ from github import Github, Auth
 
 
 from constants import (
-    OPENAI_API_KEY,
     CONTEXT_PATH_DEFAULT
 )
 from pathlib import Path

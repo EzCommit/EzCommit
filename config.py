@@ -2,15 +2,29 @@ import os
 import shutil
 import json
 from git import Repo, InvalidGitRepositoryError, NoSuchPathError
+from view import View
 
 class EZCommitConfig:
     CONFIG_DIR = ".ezcommit"
     CONFIG_FILE = "config.json"
 
-    def __init__(self, repo_path, convention_path, db_path):
+    def __init__(self, repo_path, convention_path, db_path, openai_api_key):
         self.repo_path = repo_path
         self.convention_path = convention_path
         self.db_path = db_path
+        self.openai_api_key = openai_api_key
+
+    def set_api_key():
+        repo_path = EZCommitConfig.get_repo_path()
+        openai_api_key = View.display_prompt("Enter your OpenAI API key", "Key")
+
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'r') as config_file:
+            config_data = json.load(config_file)
+            config_data["OPENAI_API_KEY"] = openai_api_key
+
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'w') as config_file:
+            json.dump(config_data, config_file, indent=4)
+
 
     @staticmethod
     def reinit_config(repo_path):
@@ -27,11 +41,14 @@ class EZCommitConfig:
             os.makedirs(config_path)
         
         config_file_path = os.path.join(config_path, EZCommitConfig.CONFIG_FILE)
+
+        api_key = View.display_prompt("Enter your OpenAI API key", "Key")
         
         config_data = {
             "REPO_PATH": repo_path,
             "CONVENTION_PATH": f"{repo_path}/.ezcommit/default_convention.txt",
-            "DB_PATH": f"{repo_path}/.ezcommit/db"
+            "DB_PATH": f"{repo_path}/.ezcommit/db",
+            "OPENAI_API_KEY": api_key
         }
         
         with open(config_file_path, 'w') as config_file:
@@ -61,7 +78,8 @@ class EZCommitConfig:
         return EZCommitConfig(
             config_data["REPO_PATH"],
             config_data["CONVENTION_PATH"],
-            config_data["DB_PATH"]
+            config_data["DB_PATH"],
+            config_data["OPENAI_API_KEY"],
         )
 
     @staticmethod

@@ -11,6 +11,7 @@ import click
 @click.option('--init', is_flag=True, help='hehe')
 @click.option('--reinit', is_flag=True, help='hehe')
 @click.option('--remove', is_flag=True, help='hehe')
+@click.option('--api-key', is_flag=True, help='hehe')
 def main(**kwargs):
     repo_path = EZCommitConfig.get_repo_path()
     print(repo_path)
@@ -28,6 +29,9 @@ def main(**kwargs):
     elif kwargs.get('remove'):
         EZCommitConfig.remove_config(repo_path)
         Controller.display_notification("Ezcommit removed.")
+        exit(0)
+    elif kwargs.get('api_key'):
+        EZCommitConfig.set_api_key()
         exit(0)
 
     try:

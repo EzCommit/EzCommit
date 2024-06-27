@@ -7,8 +7,7 @@ from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 from rag.ingest import Ingest
 
 from constants import (
-    COMMIT_COLLECTION,
-    OPENAI_API_KEY
+    COMMIT_COLLECTION
 )
 
 
@@ -18,7 +17,7 @@ class RAG():
         self.repo = git.Repo(self.config.repo_path)
         self.client = chromadb.PersistentClient(path=config.db_path)
         self.collection = self.client.get_or_create_collection(name=COMMIT_COLLECTION)
-        self.llm_client = OpenAI(api_key=OPENAI_API_KEY)
+        self.llm_client = OpenAI(api_key=self.config.openai_api_key)
 
         self.ingest = Ingest(self.client, self.llm_client, self.repo, self.config)
         self.ingest.update_database()

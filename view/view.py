@@ -89,6 +89,12 @@ class View:
         click.clear()
         View._display_with_frame(msg, "Error Message")
 
+    @staticmethod
+    def display_prompt(msg, field):
+        click.clear()
+        View._display_with_frame(msg, "Input")
+        return click.prompt(field)
+
     def clear(self):
         click.clear()
     

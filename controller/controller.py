@@ -1,5 +1,5 @@
-from view.view import View
-from model.model import Model
+from view import View
+from model import Model
 from openai import AuthenticationError
 from github import GithubException
 
@@ -36,9 +36,13 @@ class Controller:
             try:
                 content, title = self.model.create_pr_content(src_branch, dest_branch)
             except AuthenticationError as e:
-                self.view.display_error(e.body.get('message', 'Unknown error'))
+                self.view.display_error(e.body.get('message', 'Unknown error API'))
+                if ("Incorrect API key provided" in e.body.get('message', '')):
+                    print('Run ezcommit --api-key to set a new API key')
+                return
             except Exception as e:
                 self.view.display_error('Unknown error')
+                return
 
             break
 
@@ -48,27 +52,46 @@ class Controller:
 
             self.view.display_notification(f"Pull request created: {pr.html_url}")
         except AuthenticationError as e:
-            self.view.display_error(e.body.get('message', 'Unknown error'))
+            self.view.display_error(e.body.get('message', 'Unknown error API'))
+            if ("Incorrect API key provided" in e.body.get('message', '')):
+                print('Run ezcommit --api-key to set a new API key')
+            return
         except GithubException as e:
             self.view.display_error(e.data.get('errors', 'Unknown error')[0]['message'])
+            return
         except Exception as e:
-            self.view.display_error(e.data.get('message'))
+            self.view.display_error('Unknown error')
+            return
+
 
     def create_commit(self):
         temperature = 0.8
         if self.model.repository.repo.is_dirty() or self.model.repository.repo.untracked_files:
-            select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
-            try: 
-                if select == 'n':
-                    cmt_msg = self.model.create_commit_message(all_changes=False)
-                if select == 'y':
-                    cmt_msg = self.model.create_commit_message(all_changes=True)
-            except AuthenticationError as e:
-                self.view.display_error(e.body.get('message', 'Unknown error'))
-            except Exception as e:
-                self.view.display_error('Unknown error')
+            while True:
+                select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
 
-                return
+                try: 
+                    if select == 'exit':
+                        return
+                    if select not in ['y', 'n']:
+                        self.view.display_notification("Invalid selection")
+                        continue
+                    if select == 'n':
+                        cmt_msg = self.model.create_commit_message(all_changes=False)
+                        break
+                    if select == 'y':
+                        cmt_msg = self.model.create_commit_message(all_changes=True)
+                        break
+
+                except AuthenticationError as e:
+                    self.view.display_error(e.body.get('message', 'Unknown error'))
+                    if ("Incorrect API key provided" in e.body.get('message', '')):
+                        print('Run ezcommit --api-key to set a new API key')
+                    return
+                except Exception as e:
+                    self.view.display_error('Unknown error')
+                    return
+
 
             while True:
                 self.view.clear()
