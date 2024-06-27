@@ -12,22 +12,21 @@ import click
 @click.option('--reinit', is_flag=True, help='hehe')
 @click.option('--remove', is_flag=True, help='hehe')
 @click.option('--api-key', is_flag=True, help='hehe')
+@click.option('--sum', is_flag=True, help='hehe')
 def main(**kwargs):
-    repo_path = EZCommitConfig.get_repo_path()
-    print(repo_path)
     if kwargs.get('init'):
-        if EZCommitConfig.is_initialized(repo_path):
+        if EZCommitConfig.is_initialized():
             Controller.display_notification("Configuration already initialized.")
             exit(0)
             
-        msg = EZCommitConfig.init_config(repo_path)
+        msg = EZCommitConfig.init_config()
         Controller.display_notification(msg)
     elif kwargs.get('reinit'):
-        msg = EZCommitConfig.reinit_config(repo_path)
+        msg = EZCommitConfig.reinit_config()
         Controller.display_notification(msg)
         exit(0)
     elif kwargs.get('remove'):
-        EZCommitConfig.remove_config(repo_path)
+        EZCommitConfig.remove_config()
         Controller.display_notification("Ezcommit removed.")
         exit(0)
     elif kwargs.get('api_key'):
@@ -35,7 +34,7 @@ def main(**kwargs):
         exit(0)
 
     try:
-        loaded_config = EZCommitConfig.load_config(repo_path)
+        loaded_config = EZCommitConfig.load_config()
         controller = Controller(loaded_config)
     except FileNotFoundError:
         Controller.display_notification("No configuration file found. Please run `ezcommit --init` to initialize configuration.")
@@ -46,6 +45,8 @@ def main(**kwargs):
         controller.create_commit()
     elif kwargs.get('--visual'):
         controller.display_visual_log()
+    elif kwargs.get('sum'):
+        controller.summarize()
     elif kwargs.get('gen_pr'):
         controller.create_pull_request()
     else:

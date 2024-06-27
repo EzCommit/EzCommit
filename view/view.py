@@ -56,6 +56,7 @@ class View:
         click.echo(top_bottom_border)    
 
     def display_generated_commit(self, msg):
+        click.clear()
         if (msg == "No changes found"):
             click.echo(msg)
             return "a"
@@ -64,9 +65,31 @@ class View:
         click.echo("")
         user_input = click.prompt("""Type c to commit, r to regenerate, a to abort""")
         return user_input
+
+    def display_pull_requests(self, msg, title):
+        click.clear()
+        if (msg == "No changes found"):
+            click.echo(msg)
+            return "a"
+        
+        self._display_with_frame(msg, title)
+        click.echo("")
+        user_input = click.prompt("""Type c to create PRs, r to regenerate, a to abort""")
+        return user_input
+
+    def display_summarize(self, msg):
+        click.clear()
+        
+        self._display_with_frame(msg, "Summarize Documentation")
+        click.echo("")
+        user_input = click.prompt("""Type c to export, r to regenerate, a to abort""")
+        return user_input
     
     def display_visual_log(self, log_output):
         self._display_with_frame(log_output, title = "Commits History Visualization")
+
+    def display_info(self, msg, title):
+        self._display_with_frame(msg, title)
 
     def display_selection(self, question, options):
         message = ''
@@ -76,7 +99,7 @@ class View:
         options_str = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
 
         self._display_with_frame(f"Option:\n{options_str}", question)
-        user_input = click.prompt("Choose an option (type the number or name)")
+        user_input = click.prompt("Choose an option (type the number)")
         return user_input.strip()
 
     @staticmethod
@@ -94,6 +117,8 @@ class View:
         click.clear()
         View._display_with_frame(msg, "Input")
         return click.prompt(field)
+
+    
 
     def clear(self):
         click.clear()

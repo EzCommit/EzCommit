@@ -1,4 +1,10 @@
 from rag.rag import RAG
+import tempfile
+import os
+import markdown
+import pdfkit
+
+
 import requests
 import subprocess
 import asyncio
@@ -21,7 +27,6 @@ async def _commit(repo_path:str, msg: str) -> list:
     cmd = "commit"
     full_options = ['-m', msg]
     stdout, stderr = await _execute(cwd, cmd, full_options)
-    print(stderr)
     return stdout
 
 
@@ -131,6 +136,9 @@ class Model:
         self.config = config
         self.rag = RAG(self.config)
         self.repository = Repository(self.config)
+        auth = Auth.Token("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")
+        self.g = Github(auth=auth)
+        self.repo_github = self.g.get_repo(self.repository.get_repo_name())
 
         # self.context_path = Path(config.context_path) if config.context_path else None
         self.convention_path = Path(config.convention_path) if config.convention_path else None
@@ -145,7 +153,49 @@ class Model:
         else: 
             self.convention = ''
 
-    def create_pr_content(self, branch_a, branch_b):
+    def list_pr(self):
+        pull_requests = self.repo_github.get_pulls(state='all')
+
+        return pull_requests
+
+    def summarize_pr(self, pr, temp):
+        structure = """
+            # Title
+            ## Introduction
+            ## Major Changes
+            ### New Features
+            ### Bug Fixes
+            ### Performance Improvements
+            ### UI Enhancements
+            ### Security
+            ## Conclusion
+        """
+        summarise = []
+        for commit in pr.get_commits():
+            parent_commit = commit.parents[0] if commit.parents else None
+            if parent_commit:
+                stdout, stderr = asyncio.run(_execute(self.repository.repo_path, 'diff', [parent_commit.sha, commit.sha]))
+                for chunk in split_text_into_line_chunks(stdout):
+                    response = self.rag.llm_client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
+                        ],
+                        max_tokens=500,
+                        temperature = temp
+                    )
+                    summarise.append(response.choices[0].message.content)
+
+        prompt = "You are a professional AI assistant that helps publish summary reports on changes in source code. Below is the report request. Please summarize the changes and publish the report in Markdown format. No codeblock"
+        prompt += f'\n{structure}\n'
+        prompt += "\n".join(summarise)
+
+        content = _get_openai_answer(self.rag.llm_client, prompt, 0.8)
+        return content
+
+
+
+    def create_pr_content(self, branch_a, branch_b, temp):
         try:
             print(f"Checking out and pull {branch_b}")
             self.repository.repo.remotes.origin.pull(refspec=f'{branch_b}:{branch_b}')
@@ -164,7 +214,8 @@ class Model:
                         messages=[
                             {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
                         ],
-                        max_tokens=500
+                        max_tokens=500,
+                        temperature = temp
                     )
                     summaries.append(response.choices[0].message.content)
 
@@ -187,11 +238,8 @@ class Model:
 
         return content, title
 
-    def create_pull_request(self, repo_name, branch_a, branch_b, content, title):
-        auth = Auth.Token("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")
-        g = Github(auth=auth)
-        repo = g.get_repo(repo_name)
-        pr = repo.create_pull(
+    def create_pull_request(self, branch_a, branch_b, content, title):
+        pr = self.repo_github.create_pull(
             title=title,
             body=content,
             head=branch_a,
@@ -270,3 +318,42 @@ class Model:
             print("No commits found")
             return
         return log_output
+
+    def md_to_pdf(self, md_content: str, filename: str):
+        export_dir = os.path.expanduser('~/ezcommit_export')
+        if not os.path.exists(export_dir):
+            os.makedirs(export_dir)
+
+        def get_unique_filename(filename: str) -> str:
+            base = filename.strip()
+            unique_filename = os.path.join(export_dir, f"{base}.pdf")
+            counter = 1
+            while os.path.exists(unique_filename):
+                unique_filename = os.path.join(export_dir, f"{base} ({counter}).pdf")
+                counter += 1
+            return unique_filename
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            markdown_path = os.path.join(tempdir, 'content.md')
+
+            # Lưu nội dung markdown vào file
+            with open(markdown_path, 'w', encoding='utf-8') as f:
+                f.write(md_content)
+
+            html_path = os.path.join(tempdir, 'content.html')
+
+            html_content = markdown.markdown(md_content)
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            pdf_path = os.path.join(tempdir, 'output.pdf')
+
+            pdfkit.from_file(html_path, pdf_path)
+
+            with open(pdf_path, 'rb') as f:
+                pdf_output = f.read()
+
+            output_pdf_path = get_unique_filename(filename)
+            with open(output_pdf_path, 'wb') as f:
+                f.write(pdf_output)
+                f.close()
