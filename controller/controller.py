@@ -1,5 +1,5 @@
-from view.view import View
-from model.model import Model
+from ..view.view import View
+from ..model.model import Model
 from openai import AuthenticationError
 from github import GithubException
 

@@ -1,5 +1,5 @@
 from .utils import get_commit_diff
-from constants import (
+from ..constants import (
     COMMIT_COLLECTION
 )
 

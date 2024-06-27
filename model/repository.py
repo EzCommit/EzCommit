@@ -2,7 +2,7 @@ from git import Repo
 from enum import Enum
 from typing import List
 
-from constants import (
+from ..constants import (
     OPENAI_API_KEY
 )
 

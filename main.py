@@ -1,5 +1,5 @@
-from controller.controller import Controller
-from config import EZCommitConfig
+from .controller.controller import Controller
+from .config import EZCommitConfig
 import click
 
 @click.command()
