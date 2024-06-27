@@ -161,8 +161,8 @@ class Model:
             except (FileNotFoundError, IOError) as e:
                 print(f"Error reading context file: {e}")
                 self.context = "Context file could not be read.\n"
-
-        print(self.convention)
+        else:
+            self.context = ''
 
     def list_pr(self):
         pull_requests = self.repo_github.get_pulls(state='all')
@@ -337,7 +337,7 @@ class Model:
 
         prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
 
-        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
+        response = _get_openai_answer(self.rag.llm_client, prompt=prompt, temperature=temperature)
         #response = "yes"
         return response
 
@@ -347,7 +347,7 @@ class Model:
     def get_visual_log(self):
         try:
             log_output = self.repository.repo.git.log(
-                            '--graph','--full-history','--all', '--color',   
+                            '--graph','--full-history','--all', '--no-color',   
                             '--pretty=format: %C(bold blue)%d %C(reset) %C(green) %cd %C(reset) %s %C(cyan)(%an)%C(reset)',
                             '--date=short')
         except GitCommandError as e: 

@@ -6,13 +6,14 @@ import click
 @click.option('--visual', is_flag = True, help = 'Visual commits history.')
 @click.option('--context-path', help='Path to context file')
 @click.option('--convention-path', is_flag=True, help='Path to convention file')
-@click.option('--gen-cmt', is_flag=True, help='hehe')
-@click.option('--gen-pr', is_flag=True, help='hehe')
-@click.option('--init', is_flag=True, help='hehe')
-@click.option('--reinit', is_flag=True, help='hehe')
-@click.option('--remove', is_flag=True, help='hehe')
-@click.option('--api-key', is_flag=True, help='hehe')
-@click.option('--sum', is_flag=True, help='hehe')
+@click.option('--gen-cmt', is_flag=True, help='Generate commit message.')
+@click.option('--gen-pr', is_flag=True, help='Generate pull request.')
+@click.option('--init', is_flag=True, help='Initialize configuration.')
+@click.option('--reinit', is_flag=True, help='Reinitialize configuration.')
+@click.option('--remove', is_flag=True, help='Remove configuration.')
+@click.option('--api-key', is_flag=True, help='Set OpenAI API key.')
+@click.option('--sum', is_flag=True, help='Summarize changes.')
+@click.option('-fast', is_flag=True, help='Use fast-mode for generation')
 def main(**kwargs):
     if kwargs.get('init'):
         if EZCommitConfig.is_initialized():
@@ -48,8 +49,11 @@ def main(**kwargs):
         exit(1)
 
     if kwargs.get('gen_cmt'):
-        controller.create_commit()
-    elif kwargs.get('--visual'):
+        if kwargs.get('fast'):
+            controller.create_commit_fast()
+        else:
+            controller.create_commit()
+    elif kwargs.get('visual'):
         controller.display_visual_log()
     elif kwargs.get('sum'):
         controller.summarize()

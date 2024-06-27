@@ -17,16 +17,10 @@ class View:
     def display_diff(self, diffs):
         formatted_diffs = format_diff(diffs)
         self._display_with_frame(formatted_diffs, title="Git Diff Output")
-
-    def display_feature(self):
-        feature_lines = [
-            "1. Create pull requests."
-        ]
-        self._display_with_frame(feature_lines, "Feature")
         
     def display_welcome_message(self):
         welcome_lines = [
-            "Welcome to \x1b[1;32mezCommit\x1b[0m!",
+            "Welcome to ezCommit",
             "----------------------------------------",
             "Your easy commit solution for managing Git repositories.",
             "Type --help to see available commands."
