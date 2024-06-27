@@ -8,13 +8,37 @@ class EZCommitConfig:
     CONFIG_DIR = ".ezcommit"
     CONFIG_FILE = "config.json"
 
-    def __init__(self, repo_path, convention_path, db_path, openai_api_key, access_token):
+    def __init__(self, repo_path, db_path, openai_api_key, access_token, convention_path=None, context_path=None):
         self.repo_path = repo_path
-        self.convention_path = convention_path
         self.db_path = db_path
         self.openai_api_key = openai_api_key
         self.access_token = access_token
+        self.convention_path = convention_path
+        self.context_path = context_path
 
+    @staticmethod
+    def set_context_path():
+        repo_path = EZCommitConfig.get_repo_path()
+        context_path = View.display_prompt("Enter the path to your context file", "Path")
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'r') as config_file:
+            config_data = json.load(config_file)
+            config_data["CONTEXT_PATH"] = context_path
+        
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'w') as config_file:
+            json.dump(config_data, config_file, indent=4)
+
+    @staticmethod
+    def set_convention_path():
+        repo_path = EZCommitConfig.get_repo_path()
+        convention_path = View.display_prompt("Enter the path to your commit convention file", "Path")
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'r') as config_file:
+            config_data = json.load(config_file)
+            config_data["CONVENTION_PATH"] = convention_path
+        
+        with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'w') as config_file:
+            json.dump(config_data, config_file, indent=4) 
+
+    @staticmethod
     def set_api_key():
         repo_path = EZCommitConfig.get_repo_path()
         openai_api_key = View.display_prompt("Enter your OpenAI API key", "Key")
@@ -26,6 +50,7 @@ class EZCommitConfig:
         with open(os.path.join(repo_path, EZCommitConfig.CONFIG_DIR, EZCommitConfig.CONFIG_FILE), 'w') as config_file:
             json.dump(config_data, config_file, indent=4)
 
+    @staticmethod
     def set_access_token():
         repo_path = EZCommitConfig.get_repo_path()
         access_token = View.display_prompt("Enter your GitHub access token", "Token")
@@ -61,7 +86,6 @@ class EZCommitConfig:
         
         config_data = {
             "REPO_PATH": repo_path,
-            "CONVENTION_PATH": f"{repo_path}/.ezcommit/default_convention.txt",
             "DB_PATH": f"{repo_path}/.ezcommit/db",
             "OPENAI_API_KEY": api_key,
             "ACCESS_TOKEN": access_token,
@@ -69,15 +93,6 @@ class EZCommitConfig:
         
         with open(config_file_path, 'w') as config_file:
             json.dump(config_data, config_file, indent=4)
-        
-        
-        src_default_convention = os.path.join(os.path.dirname(__file__), "helper", "default_convention.txt")
-        dest_default_convention = os.path.join(config_path, "default_convention.txt")
-        if os.path.exists(src_default_convention):
-            shutil.copy(src_default_convention, dest_default_convention)
-            print(f"Moved default_convention to {dest_default_convention}")
-        else:
-            print(f"File {src_default_convention} does not exist")
 
         return f"Configuration initialized and saved to {config_file_path}"
 
@@ -94,10 +109,11 @@ class EZCommitConfig:
         
         return EZCommitConfig(
             config_data["REPO_PATH"],
-            config_data["CONVENTION_PATH"],
             config_data["DB_PATH"],
             config_data["OPENAI_API_KEY"],
             config_data["ACCESS_TOKEN"],
+            config_data["CONVENTION_PATH"] if "CONVENTION_PATH" in config_data else None,
+            config_data["CONTEXT_PATH"] if "CONTEXT_PATH" in config_data else None,
         )
 
     @staticmethod

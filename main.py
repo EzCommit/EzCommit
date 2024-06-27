@@ -4,8 +4,8 @@ import click
 
 @click.command()
 @click.option('--visual', is_flag = True, help = 'Visual commits history.')
-@click.option('--context_path', help='Path to context file')
-@click.option('--convention_path', help='Path to convention file')
+@click.option('--context-path', help='Path to context file')
+@click.option('--convention-path', is_flag=True, help='Path to convention file')
 @click.option('--gen-cmt', is_flag=True, help='hehe')
 @click.option('--gen-pr', is_flag=True, help='hehe')
 @click.option('--init', is_flag=True, help='hehe')
@@ -31,6 +31,12 @@ def main(**kwargs):
         exit(0)
     elif kwargs.get('api_key'):
         EZCommitConfig.set_api_key()
+        exit(0)
+    elif kwargs.get('convention_path'):
+        EZCommitConfig.set_convention_path()
+        exit(0)
+    elif kwargs.get('context_path'):
+        EZCommitConfig.set_context_path()
         exit(0)
 
     try:

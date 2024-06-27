@@ -1,3 +1,4 @@
+default = """
 format: <type>: <message>
 
 - `feat`: A new feature for the user.
@@ -10,3 +11,4 @@ format: <type>: <message>
 - `build`: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm).
 - `ci`: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs).
 - `chore`: Other changes that don't modify src or test files.
+"""

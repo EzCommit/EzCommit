@@ -21,6 +21,7 @@ from openai import AsyncOpenAI
 
 from model.repository import Repository
 from rag.utils import split_text_into_line_chunks
+from helper import default
 
 async def _commit(repo_path:str, msg: str) -> list:
     cwd = repo_path
@@ -140,18 +141,28 @@ class Model:
         self.g = Github(auth=auth)
         self.repo_github = self.g.get_repo(self.repository.get_repo_name())
 
-        # self.context_path = Path(config.context_path) if config.context_path else None
+        self.context_path = Path(config.context_path) if config.context_path else None
         self.convention_path = Path(config.convention_path) if config.convention_path else None
 
         if self.convention_path:
             try: 
-                self.convention = "Given this is the context of the commit message: \n"
+                self.convention = "Given this is the convention of the commit message: \n"
                 self.convention += self.convention_path.read_text() + "\n"
             except (FileNotFoundError, IOError) as e:
                 print(f"Error reading context file: {e}")
                 self.context = "Context file could not be read.\n"
         else: 
-            self.convention = ''
+            self.convention = default
+
+        if self.context_path:
+            try:
+                self.convention = "Given this is the context of the repository: \n"
+                self.context = self.context_path.read_text()
+            except (FileNotFoundError, IOError) as e:
+                print(f"Error reading context file: {e}")
+                self.context = "Context file could not be read.\n"
+
+        print(self.convention)
 
     def list_pr(self):
         pull_requests = self.repo_github.get_pulls(state='all')
@@ -304,6 +315,31 @@ class Model:
             file_contents.append((file, content))
         
         return file_contents
+    
+    def generate_commit(self, stages: bool, temperature: float):
+        if stages:
+            asyncio.run(_execute(self.repository.repo_path, "add", ["."]))
+
+        all_changes = self.get_changes_no_split()
+        files_content = self.get_files_content()
+        if len(files_content) == 0:
+            return "No changes found"
+
+        prompt = self.context + self.convention
+        for file, content in files_content:
+            prompt += "This is the current code in " + file + """, the code end after  "CODE END HERE!!!\n\n"""
+            prompt += content + "\n"
+            prompt += "CODE END HERE!!!\n\n"
+
+        prompt += """This is the output after using git diff command, the output end after "GIT DIFF END HERE!!!\n\n"""
+        prompt += all_changes + "\n"
+        prompt += "GIT DIFF END HERE!!!\n\n"
+
+        prompt += "Write a simple commit message for the changes. Don't need to explain. Read the code carefully, don't miss any changes."
+
+        response = asyncio.run(_get_openai_answer(api_key=OPENAI_API_KEY, prompt=prompt, temperature=temperature))
+        #response = "yes"
+        return response
 
     def commit(self, msg: str):
         asyncio.run(_commit(self.config.repo_path, msg))

@@ -172,6 +172,11 @@ class Controller:
 
     def display_welcome_message(self):
         self.view.display_welcome_message()
+        self.view.display_feature()
+    
+    def test(self):
+        diffs = self.model.generate_commit()
+        print(diffs)
 
     def generate_commit(self):
         temperature = 0.8
@@ -189,6 +194,31 @@ class Controller:
         
         if (user_input == "c"):
             self.model.commit(msg)
+
+    def create_commit_fast(self):
+        temperature = 0.8
+        if self.model.repository.repo.is_dirty():
+            select = self.view.display_selection("Do you want stage all changes?", ["Yes (y)", "No (n)"])
+            if select == 'n':
+                cmt_msg = self.model.generate_commit(stages=False, temperature=temperature)
+            if select == 'y':
+                cmt_msg = self.model.generate_commit(stages=True, temperature=temperature)
+
+            while True:
+                select = self.view.display_generated_commit(cmt_msg)
+                if select == 'a':
+                    return
+                
+                if select == 'r':
+                    temperature += 0.1
+                    cmt_msg = self.model.create_commit_message(all_changes=False, temperature=temperature)
+                    continue
+                
+                if select == 'c': 
+                    self.model.commit(cmt_msg)
+                    return
+        else: 
+            self.view.display_notification("No changes")
 
     def display_visual_log(self):
         log_output = self.model.get_visual_log()
