@@ -4,6 +4,8 @@ from controller.controller import Controller
 from model.model import Model
 from view.view import View
 
+from git import GitCommandError
+
 @pytest.fixture(scope="module")
 def run_visual_command():
     """Fixture to run the main script with the --visual flag and capture output."""

@@ -11,7 +11,6 @@ def mock_config():
     config = MagicMock(spec=EZCommitConfig)
     config.repo_path = '/home/hoaithi/angular-project/meogroup-backend'
     config.db_path = '/home/hoaithi/angular-project/meogroup-backend/.ezcommit/db'
-    config.convention_path = '/home/hoaithi/angular-project/meogroup-backend/.ezcommit/default_convention.txt'
     return config
 
 @pytest.fixture
