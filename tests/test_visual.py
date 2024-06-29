@@ -1,8 +1,8 @@
 import subprocess
 import pytest
-from controller.controller import Controller
-from model.model import Model
-from view.view import View
+from ..controller.controller import Controller
+from ..model.model import Model
+from ..view.view import View
 
 from git import GitCommandError
 

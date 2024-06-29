@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call, patch
-from controller.controller import Controller
-from model.model import Model
-from view.view import View
+from ..controller.controller import Controller
+from ..model.model import Model
+from ..view.view import View
 
 @pytest.fixture
 def mock_model(mocker):

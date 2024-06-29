@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from controller.controller import Controller
-from config import EZCommitConfig
+from ..controller.controller import Controller
+from ..config import EZCommitConfig
 from github import GithubException
 from openai import AuthenticationError
 
