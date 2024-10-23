@@ -1,4 +1,4 @@
-from ..rag.rag import RAG
+from rag.rag import RAG
 import tempfile
 import os
 import markdown
@@ -13,15 +13,15 @@ import subprocess
 from github import Github, Auth
 
 
-from ..constants import (
+from .constants import (
     CONTEXT_PATH_DEFAULT
 )
 from pathlib import Path
 from openai import AsyncOpenAI
 
-from ..model.repository import Repository
-from ..rag.utils import split_text_into_line_chunks
-from ..helper import default
+from model.repository import Repository
+from rag.utils import split_text_into_line_chunks
+from helper import default
 
 async def _commit(repo_path:str, msg: str) -> list:
     cwd = repo_path

@@ -1,4 +1,4 @@
-from .controller.controller import Controller
+from controller.controller import Controller
 from .config import EZCommitConfig
 import click
 

@@ -2,7 +2,7 @@ import os
 import shutil
 import json
 from git import Repo, InvalidGitRepositoryError, NoSuchPathError
-from .view import View
+from view import View
 
 class EZCommitConfig:
     CONFIG_DIR = ".ezcommit"

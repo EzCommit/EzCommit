@@ -4,9 +4,9 @@ import subprocess
 from openai import OpenAI
 from .utils import split_text_into_line_chunks
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-from ..rag.ingest import Ingest
+from rag.ingest import Ingest
 
-from ..constants import (
+from .constants import (
     COMMIT_COLLECTION
 )
 
