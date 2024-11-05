@@ -2,11 +2,12 @@ import chromadb
 import git
 import subprocess
 from openai import OpenAI
+from mistralai import Mistral
 from .utils import split_text_into_line_chunks
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 from rag.ingest import Ingest
 
-from .constants import (
+from constants import (
     COMMIT_COLLECTION
 )
 
@@ -17,8 +18,8 @@ class RAG():
         self.repo = git.Repo(self.config.repo_path)
         self.client = chromadb.PersistentClient(path=config.db_path)
         self.collection = self.client.get_or_create_collection(name=COMMIT_COLLECTION)
-        self.llm_client = OpenAI(api_key=self.config.openai_api_key)
-
+        #self.llm_client = OpenAI(api_key=self.config.openai_api_key)
+        self.llm_client = Mistral(api_key=self.config.mistral_api_key)
         self.ingest = Ingest(self.client, self.llm_client, self.repo, self.config)
         self.ingest.update_database()
         self.embedding_function = DefaultEmbeddingFunction()
@@ -34,8 +35,8 @@ class RAG():
     def _embed_diff(self, diff):
         summaries = []
         for chunk in split_text_into_line_chunks(diff):
-            response = self.llm_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            response = self.llm_client.chat.complete(
+                model="mistral-small-latest",
                 messages=[
                     {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
                 ],
@@ -58,8 +59,8 @@ class RAG():
             prompt += f"Similar change {i+1}:\n{similar_diff}\n\n"
         prompt += "\n\nCreate a one-line commit message according to one of the following convention formats:\n" + convention
 
-        response = self.llm_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        response = self.llm_client.chat.complete(
+            model="mistral-small-latest",
             messages=[
                 {"role": "user", "content": prompt}
             ],

@@ -1,5 +1,5 @@
 from controller.controller import Controller
-from .config import EZCommitConfig
+from config import EZCommitConfig
 import click
 
 @click.command()
@@ -11,7 +11,7 @@ import click
 @click.option('--init', is_flag=True, help='Initialize configuration.')
 @click.option('--reinit', is_flag=True, help='Reinitialize configuration.')
 @click.option('--remove', is_flag=True, help='Remove configuration.')
-@click.option('--api-key', is_flag=True, help='Set OpenAI API key.')
+@click.option('--api-key', is_flag=True, help='Set Mistral API key.')
 @click.option('--sum', is_flag=True, help='Summarize changes.')
 @click.option('-fast', is_flag=True, help='Use fast-mode for generation')
 def main(**kwargs):

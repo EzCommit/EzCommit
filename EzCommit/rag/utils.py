@@ -1,6 +1,7 @@
 import difflib
 import subprocess
-
+from mistralai.models import SDKError
+import time
 def split_text_into_line_chunks(text, chunk_size=4096):
     lines = text.split('\n')
     chunks = []
@@ -24,24 +25,34 @@ def split_text_into_line_chunks(text, chunk_size=4096):
 
 
 def get_commit_diff(commit, repo_path, client):
+    wait_time = 1
     parent_commit = commit.parents[0] if commit.parents else None
     if parent_commit:
+
         diff_cmd = ['git', 'diff', parent_commit.hexsha, commit.hexsha]
         diff_output = subprocess.check_output(diff_cmd, cwd=repo_path)
         diff_text = diff_output.decode('utf-8')
-        
         summaries = []
         for chunk in split_text_into_line_chunks(diff_text):
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
-                ],
-                max_tokens=500
-            )
-            summary = response.choices[0].message.content
-            summaries.append(summary)
-        
+
+            try:
+                response = client.chat.complete(
+                    model="open-mistral-7b",
+                    messages=[
+                        {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
+                    ],
+                    max_tokens=200
+                )
+                summary = response.choices[0].message.content
+                summaries.append(summary)
+            except SDKError as e:
+                if "Status 429" in str(e):
+                    print(f"Rate limit hit. Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                    wait_time *= 2  # exponential backoff
+                else:
+                    raise  # re-raise other exceptions if they're not 429 errors
+
         return "\n".join(summaries)
     else:
         return "Initial commit - no parent diff available."

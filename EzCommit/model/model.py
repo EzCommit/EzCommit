@@ -13,12 +13,13 @@ import subprocess
 from github import Github, Auth
 
 
-from .constants import (
+from constants import (
     CONTEXT_PATH_DEFAULT
 )
 from pathlib import Path
 from openai import AsyncOpenAI
 
+from mistralai import Mistral
 from model.repository import Repository
 from rag.utils import split_text_into_line_chunks
 from helper import default
@@ -115,12 +116,12 @@ async def _get_file_content(repository: Repository, file_path: str) -> str:
 
     
 def _get_openai_answer(client, prompt: str, temperature: float) -> str:
-    response = client.chat.completions.create(
+    response = client.chat.complete(
         messages=[{
             "role": "user",
             "content": prompt,
         }],
-        model="gpt-3.5-turbo-0125",
+        model = "mistral-small-latest",
         temperature=temperature,
         top_p=1,
         max_tokens=500,
@@ -137,7 +138,7 @@ class Model:
         self.config = config
         self.rag = RAG(self.config)
         self.repository = Repository(self.config)
-        auth = Auth.Token("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")
+        auth = Auth.Token(config.access_token)
         self.g = Github(auth=auth)
         self.repo_github = self.g.get_repo(self.repository.get_repo_name())
 
