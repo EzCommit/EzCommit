@@ -5,10 +5,10 @@ def parse_requirements(filename):
     with open(filename, 'r') as f:
 
         return [line.strip() for line in f if line.strip() and not line.startswith('#')]
-
+    
 setup(
     name='EzCommit',
-    version='0.1.3',
+    version='0.1.9',
     packages=find_packages(),
     include_package_data=True,
     package_data={
@@ -17,7 +17,7 @@ setup(
     install_requires=parse_requirements('requirements.txt'),
     entry_points={
         'console_scripts': [
-            'ezcommit=EzCommit.main:main',
+            'ezcommit = EzCommit.main:main',
         ],
     },
 )

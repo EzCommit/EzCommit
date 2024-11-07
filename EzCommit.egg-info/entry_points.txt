@@ -1,0 +1,2 @@
+[console_scripts]
+ezcommit = EzCommit.main:main
