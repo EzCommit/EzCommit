@@ -2,7 +2,7 @@ import difflib
 import subprocess
 from mistralai.models import SDKError
 import time
-def split_text_into_line_chunks(text, chunk_size=2048):
+def split_text_into_line_chunks(text, chunk_size=1024):
     lines = text.split('\n')
     chunks = []
     current_chunk = []
@@ -37,7 +37,7 @@ def get_commit_diff(commit, repo_path, client):
 
             try:
                 response = client.chat.complete(
-                    model="open-mistral-7b",
+                    model="ministral-8b-latest",
                     messages=[
                         {"role": "user", "content": f"Summarize the following git diff:\n{chunk}\nSummary:"}
                     ],
@@ -52,7 +52,7 @@ def get_commit_diff(commit, repo_path, client):
                     wait_time *= 2  # exponential backoff
                 else:
                     raise  # re-raise other exceptions if they're not 429 errors
-
+            time.sleep(1)
         return "\n".join(summaries)
     else:
         return "Initial commit - no parent diff available."
